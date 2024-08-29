@@ -57,11 +57,11 @@ export function Level({
   });
 
   function onPressIn() {
-    scale.value = withTiming(1.1);
+    scale.value = withTiming(1.1, { duration: 50 });
   }
 
   function onPressOut() {
-    scale.value = withTiming(1);
+    scale.value = withTiming(1, { duration: 50 });
   }
 
   useEffect(() => {
