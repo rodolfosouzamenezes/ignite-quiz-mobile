@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { View, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { HouseLine } from 'phosphor-react-native';
+import Animated, { Layout, SlideInRight, SlideOutLeft, SlideOutRight } from 'react-native-reanimated';
 
 import { Header } from '../../components/Header';
 import { HistoryCard, HistoryProps } from '../../components/HistoryCard';
@@ -64,13 +65,20 @@ export function History() {
         showsVerticalScrollIndicator={false}
       >
         {
-          history.map((item) => (
-            <TouchableOpacity
+          history.map((item, index) => (
+            <Animated.View 
               key={item.id}
-              onPress={() => handleRemove(item.id)}
+              entering={SlideInRight.delay(index * 100)}
+              exiting={SlideOutLeft}
+              layout={Layout.springify()}
             >
-              <HistoryCard data={item} />
-            </TouchableOpacity>
+              <TouchableOpacity
+                key={item.id}
+                onPress={() => handleRemove(item.id)}
+              >
+                <HistoryCard data={item} />
+              </TouchableOpacity>
+            </Animated.View>
           ))
         }
       </ScrollView>
