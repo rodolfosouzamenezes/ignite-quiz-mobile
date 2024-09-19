@@ -14,6 +14,7 @@ import Animated, {
 import { Audio } from "expo-av";
 
 import { useNavigation, useRoute } from "@react-navigation/native";
+import * as Haptics from 'expo-haptics';
 
 import { styles } from "./styles";
 
@@ -106,7 +107,7 @@ export function Quiz() {
 
     if (quiz.questions[currentQuestion].correct === alternativeSelected) {
       setPoints((prevState) => prevState + 1);
-      
+
       await playSound(true)
       setStatusReply(1);
       handleNextQuestion();
@@ -135,7 +136,9 @@ export function Quiz() {
     return true;
   }
 
-  function shakeAnimation() {
+  async function shakeAnimation() {
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+    
     shake.value = withSequence(
       withTiming(3, { duration: 400, easing: Easing.bounce }),
       withTiming(0, undefined, (finished) => {
