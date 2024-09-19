@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import { Alert, Text, View } from "react-native";
 import Animated, {
   Easing,
   Extrapolate,
@@ -11,6 +11,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
+import { Audio } from "expo-av";
 
 import { useNavigation, useRoute } from "@react-navigation/native";
 
@@ -35,8 +36,8 @@ interface Params {
 
 type QuizProps = (typeof QUIZ)[0];
 
-const CARD_INCLINATION = 10
-const CARD_SKIP_AREA = (-200)
+const CARD_INCLINATION = 10;
+const CARD_SKIP_AREA = -200;
 
 export function Quiz() {
   const [points, setPoints] = useState(0);
@@ -56,6 +57,17 @@ export function Quiz() {
 
   const route = useRoute();
   const { id } = route.params as Params;
+
+  async function playSound(isCorrect: boolean) {
+    const file = isCorrect
+      ? require("../../assets/correct.mp3")
+      : require("../../assets/wrong.mp3");
+
+    const { sound } = await Audio.Sound.createAsync(file, { shouldPlay: true });
+
+    await sound.setPositionAsync(0)
+    await sound.playAsync()
+  }
 
   function handleSkipConfirm() {
     Alert.alert("Pular", "Deseja realmente pular a questão?", [
@@ -93,16 +105,18 @@ export function Quiz() {
     }
 
     if (quiz.questions[currentQuestion].correct === alternativeSelected) {
-      setStatusReply(1)
       setPoints((prevState) => prevState + 1);
+      
+      await playSound(true)
+      setStatusReply(1);
       handleNextQuestion();
     } else {
-      setStatusReply(2)
+      await playSound(false)
+      setStatusReply(2);
       shakeAnimation();
     }
 
     setAlternativeSelected(null);
-
   }
 
   function handleStop() {
@@ -123,12 +137,12 @@ export function Quiz() {
 
   function shakeAnimation() {
     shake.value = withSequence(
-      withTiming(3, { duration: 400, easing: Easing.bounce }), 
+      withTiming(3, { duration: 400, easing: Easing.bounce }),
       withTiming(0, undefined, (finished) => {
-        'worklet';
+        "worklet";
 
-        if(finished) {
-          runOnJS(handleNextQuestion)()
+        if (finished) {
+          runOnJS(handleNextQuestion)();
         }
       })
     );
@@ -136,71 +150,79 @@ export function Quiz() {
 
   const shakeStyleAnimated = useAnimatedStyle(() => {
     return {
-      transform: [{ 
-        translateX: interpolate(
-          shake.value,
-          [0, 0.5, 1, 1.5, 2, 2.5, 3],
-          [0, -15, 1, 15, 0, -15, 0]
-        )  
-      }],
+      transform: [
+        {
+          translateX: interpolate(
+            shake.value,
+            [0, 0.5, 1, 1.5, 2, 2.5, 3],
+            [0, -15, 1, 15, 0, -15, 0]
+          ),
+        },
+      ],
     };
   });
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
-      scrollY.value = event.contentOffset.y
-    }
-  })
+      scrollY.value = event.contentOffset.y;
+    },
+  });
 
   const fixedProgressBarStyles = useAnimatedStyle(() => {
     return {
-      position: 'absolute',
+      position: "absolute",
       paddingTop: 50,
       backgroundColor: THEME.COLORS.GREY_500,
-      width: '110%',
-      left: '-5%',
+      width: "110%",
+      left: "-5%",
       zIndex: 1,
       opacity: interpolate(scrollY.value, [50, 90], [0, 1], Extrapolate.CLAMP),
       transform: [
-        { translateY: interpolate(scrollY.value, [50, 100], [-40, 0], Extrapolate.CLAMP) }
-      ]
-    }
-  })
+        {
+          translateY: interpolate(
+            scrollY.value,
+            [50, 100],
+            [-40, 0],
+            Extrapolate.CLAMP
+          ),
+        },
+      ],
+    };
+  });
 
   const headerStyles = useAnimatedStyle(() => {
     return {
-      opacity: interpolate(scrollY.value, [60, 90], [1, 0], Extrapolate.CLAMP)
-    }
-  })
+      opacity: interpolate(scrollY.value, [60, 90], [1, 0], Extrapolate.CLAMP),
+    };
+  });
 
-  const onPan = Gesture
-    .Pan()
+  const onPan = Gesture.Pan()
     .activateAfterLongPress(200)
     .onUpdate((event) => {
-      const moveToLeft = event.translationX < 0
+      const moveToLeft = event.translationX < 0;
 
       if (moveToLeft) {
-        cardPosition.value = event.translationX
+        cardPosition.value = event.translationX;
       }
     })
     .onEnd((event) => {
       if (event.translationX < CARD_SKIP_AREA) {
-        runOnJS(handleConfirm)()
+        runOnJS(handleConfirm)();
       }
 
-      cardPosition.value = withTiming(0)
-    })
-  
-    const dragStyles = useAnimatedStyle(() => {
-      const rotateZ = cardPosition.value / CARD_INCLINATION
+      cardPosition.value = withTiming(0);
+    });
 
-      return {
-        transform: [
-          { translateX: cardPosition.value },
-          { rotateZ: `${rotateZ}deg` }
-        ]
-      }
-    })
+  const dragStyles = useAnimatedStyle(() => {
+    const rotateZ = cardPosition.value / CARD_INCLINATION;
+
+    return {
+      transform: [
+        { translateX: cardPosition.value },
+        { rotateZ: `${rotateZ}deg` },
+      ],
+    };
+  });
 
   useEffect(() => {
     const quizSelected = QUIZ.filter((item) => item.id === id)[0];
@@ -217,9 +239,9 @@ export function Quiz() {
       <OverlayFeedback status={statusReply} />
       <Animated.View style={fixedProgressBarStyles}>
         <Text style={styles.title}>{quiz.title}</Text>
-        <ProgressBar 
-          total={quiz.questions.length} 
-          current={currentQuestion + 1}  
+        <ProgressBar
+          total={quiz.questions.length}
+          current={currentQuestion + 1}
         />
       </Animated.View>
       <Animated.ScrollView
